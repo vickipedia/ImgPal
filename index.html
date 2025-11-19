@@ -3,390 +3,488 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ImgPal">
-    <title>ImgPal</title>
+    <title>ImgPal Cloud (v4.0 Ultimate)</title>
     
     <style>
-        body {
-            display: flex; flex-direction: column; height: 100vh; margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #111; color: white; overflow: hidden; touch-action: none;
-        }
-        .canvas-container {
-            flex-grow: 1; position: relative; overflow: hidden;
-            background-image: radial-gradient(#333 1px, transparent 1px);
-            background-size: 20px 20px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .ui-panel {
-            height: 45vh; background-color: #1e1e1e; border-top: 1px solid #333;
-            display: flex; flex-direction: column;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
-        }
-        .app-header {
-            text-align: center; font-weight: 800; font-size: 14px; 
-            padding: 8px; background: #181818; color: #007acc; letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        .tabs { display: flex; background: #252526; }
-        .tab-btn {
-            flex: 1; padding: 15px; background: none; border: none; color: #888; font-size: 14px;
-            transition: 0.2s;
-        }
-        .tab-btn.active { color: white; border-bottom: 2px solid #007acc; background: #333; font-weight: 600;}
+        :root { --accent: #007acc; --bg: #111; --panel: #1e1e1e; }
+        body { display: flex; flex-direction: column; height: 100vh; margin: 0; font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); color: white; overflow: hidden; touch-action: none; }
+        .canvas-container { flex-grow: 1; position: relative; overflow: hidden; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; display: flex; align-items: center; justify-content: center; }
+        canvas { box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 100%; max-height: 100%; }
+        .ui-panel { height: 45vh; background-color: var(--panel); border-top: 1px solid #333; display: flex; flex-direction: column; z-index: 10; }
+        .app-header { padding: 12px; text-align: center; font-weight: 800; letter-spacing: 1px; background: #000; border-bottom: 1px solid #333; font-size: 14px; color: var(--accent); }
+        
+        /* Scrollable Tabs */
+        .tabs { display: flex; background: #252526; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab-btn { flex: 0 0 auto; padding: 15px 20px; background: none; border: none; color: #888; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        .tab-btn.active { color: white; background: var(--panel); border-top: 2px solid var(--accent); }
+        
         .panel-content { flex-grow: 1; overflow-y: auto; padding: 20px; display: none; }
         .panel-content.active { display: block; }
-        .control-group { margin-bottom: 18px; }
-        label { display: flex; justify-content: space-between; font-size: 12px; color: #ccc; margin-bottom: 6px; font-weight: 500; }
-        input[type="range"] { width: 100%; accent-color: #007acc; height: 4px; background: #444; border-radius: 2px; }
-        input[type="file"] { font-size: 12px; width: 100%; background: #333; padding: 10px; border-radius: 6px; }
-        button.tool-btn {
-            width: 100%; padding: 14px; margin-bottom: 8px;
-            background: #333; border: none; color: white; border-radius: 8px; font-size: 14px; font-weight: 500;
-            transition: background 0.2s;
-        }
-        button.tool-btn.active { background: #007acc; color: white; }
-        button.save-btn { background: #28a745; margin-top: 15px; font-weight: 700; }
+        
+        /* Grid for sliders */
+        .slider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .control-group { margin-bottom: 15px; }
+        .full-width { grid-column: span 2; }
+        
+        label { display: flex; justify-content: space-between; font-size: 11px; color: #bbb; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.5px; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); height: 4px; background: #444; border-radius: 2px; outline: none; }
+        input[type="file"] { font-size: 12px; width: 100%; background: #333; padding: 12px; border-radius: 8px; color: #fff; box-sizing: border-box; }
+        input[type="file"]:disabled { opacity: 0.5; }
+        
+        .btn-grid { display: flex; gap: 8px; margin-bottom: 15px; }
+        button.tool-btn { flex: 1; padding: 12px; background: #333; border: 1px solid transparent; color: white; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        button.tool-btn.active { background: var(--accent); }
+        button.save-btn { width: 100%; background: #28a745; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 700; margin-top: 10px; cursor: pointer; }
+        
+        .status-bar { font-size: 11px; color: orange; margin-top: 8px; font-weight: 600; text-align: center; min-height: 16px; }
         svg { position: absolute; width: 0; height: 0; }
     </style>
-
-    <script type="module">
-        import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.0.5/+esm';
-        // Make it available globally for the main script
-        window.removeBackground = removeBackground;
-    </script>
 </head>
 <body>
     <svg><defs><filter id="svgSharpness"><feConvolveMatrix id="sharpMatrix" order="3" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0"/></filter></defs></svg>
 
-    <div class="canvas-container">
-        <canvas id="mainCanvas"></canvas>
-    </div>
-
+    <div class="canvas-container" id="canvasContainer"><canvas id="mainCanvas"></canvas></div>
+    
     <div class="ui-panel">
-        <div class="app-header">ImgPal Studio</div>
+        <div class="app-header">IMGPAL CLOUD (v4.0 Ultimate)</div>
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('files')">Add Photos</button>
-            <button class="tab-btn" onclick="switchTab('tools')">Edit</button>
-            <button class="tab-btn" onclick="switchTab('color')">Color</button>
+            <button class="tab-btn active" onclick="ui.tab('files')">Assets</button>
+            <button class="tab-btn" onclick="ui.tab('tools')">Tools</button>
+            <button class="tab-btn" onclick="ui.tab('light')">Light</button>
+            <button class="tab-btn" onclick="ui.tab('color')">Color</button>
+            <button class="tab-btn" onclick="ui.tab('fx')">FX / Edges</button>
         </div>
 
         <div id="tab-files" class="panel-content active">
             <div class="control-group">
-                <label>1. Add Person (Auto Remove BG)</label>
-                <input type="file" id="fgInput" accept="image/*">
-                <p id="statusText" style="font-size: 11px; color: #007acc; margin-top:8px; font-weight: 500; min-height: 15px;"></p>
+                <label>1. Add Person (Foreground)</label>
+                <input type="file" id="fgInput" accept="image/*" disabled>
+                <div id="statusText" class="status-bar">⏳ Connecting to Cloud...</div>
             </div>
             <div class="control-group">
-                <label>2. Add Background Image</label>
+                <label>2. Add Background</label>
                 <input type="file" id="bgInput" accept="image/*">
             </div>
-            <button class="tool-btn save-btn" id="btnSave">Download Image</button>
+            <button class="save-btn" id="btnSave">Download Image</button>
         </div>
 
         <div id="tab-tools" class="panel-content">
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="tool-btn active" id="btnTransform" style="flex:1; margin:0;">Move</button>
-                <button class="tool-btn" id="btnErase" style="flex:1; margin:0;">Erase</button>
-                <button class="tool-btn" id="btnRestore" style="flex:1; margin:0;">Restore</button>
+            <div class="btn-grid">
+                <button class="tool-btn active" id="btnTransform" onclick="app.setMode('transform')">Move</button>
+                <button class="tool-btn" id="btnErase" onclick="app.setMode('erase')">Erase</button>
+                <button class="tool-btn" id="btnRestore" onclick="app.setMode('restore')">Restore</button>
             </div>
             <div id="brushControls" style="display:none; background: #252526; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                <div class="control-group">
-                    <label>Brush Size</label><input type="range" id="brushSize" min="5" max="150" value="40">
-                </div>
-                <div class="control-group" style="margin-bottom: 0;">
-                    <label>Feather (Softness)</label><input type="range" id="brushFeather" min="0" max="50" value="20">
-                </div>
+                <div class="control-group"><label>Size <span id="valSize">40</span></label><input type="range" id="brushSize" min="5" max="150" value="40"></div>
+                <div class="control-group" style="margin:0"><label>Softness <span id="valFeather">20</span></label><input type="range" id="brushFeather" min="0" max="50" value="20"></div>
             </div>
-            <div class="control-group">
-                <label>Rotation</label><input type="range" id="rotateSlider" min="0" max="360" value="0">
+            <div class="control-group"><label>Rotation <span id="valRot">0°</span></label><input type="range" id="rotateSlider" min="0" max="360" value="0"></div>
+            <div class="control-group" style="display:flex; align-items:center; gap:12px; background: #252526; padding: 12px; border-radius: 8px;">
+                <input type="checkbox" id="checkGhost" style="width: 20px; height: 20px; margin:0;"> 
+                <label for="checkGhost" style="margin:0; color:white; flex:1; cursor:pointer;">Ghost Mode</label>
             </div>
-            <div class="control-group" style="display:flex; align-items:center; gap:10px; background: #252526; padding: 10px; border-radius: 6px;">
-                <input type="checkbox" id="checkGhost" style="width: 20px; height: 20px; accent-color: #007acc;"> 
-                <label for="checkGhost" style="margin:0; color: #fff;">Show Original (Ghost Mode)</label>
+        </div>
+
+        <div id="tab-light" class="panel-content">
+            <div class="slider-grid">
+                <div class="control-group"><label>Exposure</label><input type="range" id="filterExposure" min="-100" max="100" value="0"></div>
+                <div class="control-group"><label>Brightness</label><input type="range" id="filterBrightness" min="-100" max="100" value="0"></div>
+                <div class="control-group"><label>Contrast</label><input type="range" id="filterContrast" min="-100" max="100" value="0"></div>
+                <div class="control-group"><label>Highlights</label><input type="range" id="filterHighlights" min="0" max="100" value="0"></div>
+                <div class="control-group"><label>Shadows</label><input type="range" id="filterShadows" min="0" max="100" value="0"></div>
+                <div class="control-group"><label>Opacity</label><input type="range" id="filterOpacity" min="0" max="100" value="100"></div>
             </div>
         </div>
 
         <div id="tab-color" class="panel-content">
-            <div class="control-group"><label>Layer Opacity</label><input type="range" id="filterOpacity" min="0" max="100" value="100"></div>
-            <hr style="border-color: #333; margin: 15px 0;">
-            <div class="control-group"><label>Brightness</label><input type="range" id="filterBright" min="-100" max="100" value="0"></div>
-            <div class="control-group"><label>Contrast</label><input type="range" id="filterContrast" min="-100" max="100" value="0"></div>
-            <div class="control-group"><label>Warmth</label><input type="range" id="filterTemp" min="-100" max="100" value="0"></div>
-            <hr style="border-color: #333; margin: 15px 0;">
-            <div class="control-group"><label>Shadows Lift</label><input type="range" id="filterShadow" min="0" max="100" value="0"></div>
-            <div class="control-group"><label>Highlights</label><input type="range" id="filterHigh" min="0" max="100" value="0"></div>
-            <hr style="border-color: #333; margin: 15px 0;">
+             <div class="slider-grid">
+                <div class="control-group"><label>Saturation</label><input type="range" id="filterSaturation" min="-100" max="100" value="0"></div>
+                <div class="control-group"><label>Vibrance</label><input type="range" id="filterVibrance" min="-100" max="100" value="0"></div>
+                <div class="control-group"><label>Warmth / Temp</label><input type="range" id="filterTemp" min="-100" max="100" value="0"></div>
+                <div class="control-group"><label>Tint (Green/Magenta)</label><input type="range" id="filterTint" min="-100" max="100" value="0"></div>
+                <div class="control-group"><label>Hue</label><input type="range" id="filterHue" min="-180" max="180" value="0"></div>
+                <div class="control-group"><label>Sepia</label><input type="range" id="filterSepia" min="0" max="100" value="0"></div>
+             </div>
+        </div>
+
+        <div id="tab-fx" class="panel-content">
+            <div style="border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:15px;">
+                <label style="color:var(--accent); font-weight:800;">EDGE FUZZ</label>
+                <div class="control-group"><label>Fuzz Radius</label><input type="range" id="filterFuzzRadius" min="0" max="100" value="0"></div>
+                <div class="control-group"><label>Intensity (Alpha Choke)</label><input type="range" id="filterFuzzInt" min="0" max="20" value="0"></div>
+            </div>
+            <div class="control-group"><label>Smooth (Surface Blur)</label><input type="range" id="filterSmooth" min="0" max="20" value="0"></div>
+            <div class="control-group"><label>Sharpness</label><input type="range" id="filterSharpness" min="0" max="100" value="0"></div>
             <div class="control-group"><label>Grain / Noise</label><input type="range" id="filterNoise" min="0" max="100" value="0"></div>
-            <div class="control-group"><label>Edge Feathering (Blend)</label><input type="range" id="filterEdgeRad" min="0" max="50" value="0"></div>
-            <button class="tool-btn" id="btnResetFilters" style="margin-top:20px; background: #444;">Reset All Colors</button>
+            <button class="tool-btn" onclick="app.resetFilters()" style="background: #444; margin-top:15px;">Reset All Filters</button>
         </div>
     </div>
 
-    <script>
-        function switchTab(tabName) {
-            document.querySelectorAll('.panel-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tabName).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
+    <script type="module">
+        import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
 
-        const canvas = document.getElementById('mainCanvas');
-        const ctx = canvas.getContext('2d');
-        let stickerCanvas = document.createElement('canvas'); let stickerCtx = stickerCanvas.getContext('2d');
-        let filterCanvas = document.createElement('canvas'); let filterCtx = filterCanvas.getContext('2d');
-        let brushCanvas = document.createElement('canvas'); let brushCtx = brushCanvas.getContext('2d');
-
-        let bgImage = null;
-        let rawFGImage = null;
-        let noisePattern = null;
-
-        let state = {
-            x: 0, y: 0, scale: 0.5, angle: 0,
-            isDragging: false, mode: 'transform',
-            lastPaint: {x:0, y:0}, displayScale: 1,
-            filters: { opacity: 100, noise: 0, sharpness: 0, edgeRadius: 0, brightness: 0, contrast: 0, temp: 0, shadows: 0, highlights: 0, blur: 0 }
-        };
-
-        function fitCanvasToScreen() {
-            const container = canvas.parentElement;
-            const cw = container.clientWidth;
-            const ch = container.clientHeight;
-            
-            let refW = cw, refH = ch;
-            if (bgImage) { refW = bgImage.naturalWidth; refH = bgImage.naturalHeight; }
-            else if (stickerCanvas.width > 0) { refW = stickerCanvas.width; refH = stickerCanvas.height; }
-
-            canvas.width = refW; canvas.height = refH;
-            
-            const imgRatio = refW / refH;
-            const conRatio = cw / ch;
-            let cssW, cssH;
-
-            if (imgRatio > conRatio) { cssW = cw; cssH = cw / imgRatio; }
-            else { cssH = ch; cssW = ch * imgRatio; }
-
-            canvas.style.width = cssW + 'px';
-            canvas.style.height = cssH + 'px';
-            state.displayScale = canvas.width / cssW;
-            draw();
-        }
-        window.addEventListener('resize', fitCanvasToScreen);
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.globalCompositeOperation = 'source-over';
-            if (bgImage) ctx.drawImage(bgImage, 0, 0);
-
-            if (document.getElementById('checkGhost').checked && rawFGImage) {
-                ctx.save(); transform(ctx); ctx.globalAlpha = 0.4;
-                ctx.drawImage(rawFGImage, -rawFGImage.width/2, -rawFGImage.height/2);
-                ctx.restore();
-            }
-
-            if (stickerCanvas.width > 0) {
-                filterCtx.clearRect(0,0, filterCanvas.width, filterCanvas.height);
-                const f = state.filters;
-                filterCtx.filter = `brightness(${f.brightness+100}%) contrast(${f.contrast+100}%)`;
-                filterCtx.drawImage(stickerCanvas, 0, 0);
-                filterCtx.filter = 'none';
-
-                applyOverlay(filterCtx, 'screen', `rgba(100,100,100,${f.shadows/100})`);
-                applyOverlay(filterCtx, 'soft-light', `rgba(255,255,255,${f.highlights/100})`);
-                if(f.temp != 0) applyOverlay(filterCtx, 'overlay', f.temp > 0 ? `rgba(255,140,0,${Math.abs(f.temp)/100})` : `rgba(0,100,255,${Math.abs(f.temp)/100})`);
-
-                filterCtx.globalCompositeOperation = 'destination-in';
-                filterCtx.drawImage(stickerCanvas, 0, 0);
-
-                if (f.noise > 0) {
-                    filterCtx.globalCompositeOperation = 'overlay';
-                    if (!noisePattern) noisePattern = generateNoise(100);
-                    filterCtx.globalAlpha = f.noise/100;
-                    filterCtx.fillStyle = noisePattern;
-                    filterCtx.fillRect(0,0, filterCanvas.width, filterCanvas.height);
-                    filterCtx.globalAlpha = 1.0;
-                    filterCtx.globalCompositeOperation = 'destination-in';
-                    filterCtx.drawImage(stickerCanvas, 0, 0);
-                }
-
-                if (f.edgeRadius > 0) {
-                    brushCtx.clearRect(0,0, brushCanvas.width, brushCanvas.height);
-                    brushCtx.globalCompositeOperation = 'source-over';
-                    brushCtx.filter = `blur(${f.edgeRadius}px)`;
-                    brushCtx.drawImage(stickerCanvas, 0, 0); 
-                    brushCtx.filter = 'none';
-                    filterCtx.globalCompositeOperation = 'destination-in';
-                    filterCtx.drawImage(brushCanvas, 0, 0);
-                }
-
-                ctx.save(); transform(ctx);
-                ctx.globalAlpha = f.opacity / 100;
-                ctx.drawImage(filterCanvas, -filterCanvas.width/2, -filterCanvas.height/2);
-                ctx.restore();
-            }
-        }
-
-        function transform(c) {
-            c.translate(state.x, state.y);
-            c.rotate(state.angle * Math.PI/180);
-            c.scale(state.scale, state.scale);
-        }
-        function applyOverlay(c, mode, color) {
-            c.globalCompositeOperation = mode; c.fillStyle = color;
-            c.fillRect(0, 0, filterCanvas.width, filterCanvas.height);
-        }
-        function generateNoise(amt) {
-            const nc = document.createElement('canvas'); nc.width=100; nc.height=100;
-            const nx = nc.getContext('2d');
-            const idata = nx.createImageData(100,100);
-            const buf = new Uint32Array(idata.data.buffer);
-            for(let i=0; i<buf.length; i++) if(Math.random()<0.5) buf[i] = (amt*2.55)<<24;
-            nx.putImageData(idata,0,0);
-            return ctx.createPattern(nc, 'repeat');
-        }
-
-        const status = document.getElementById('statusText');
-        document.getElementById('bgInput').onchange = (e) => {
-            const img = new Image();
-            img.onload = () => { 
-                bgImage = img; fitCanvasToScreen(); 
-                if(stickerCanvas.width > 0) {
-                     state.x = bgImage.naturalWidth/2; state.y = bgImage.naturalHeight/2;
-                     state.scale = (bgImage.naturalHeight*0.6)/stickerCanvas.height;
-                     draw();
-                }
-            };
-            img.src = URL.createObjectURL(e.target.files[0]);
-        };
-
-        document.getElementById('fgInput').onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const raw = new Image();
-            raw.src = URL.createObjectURL(file);
-            raw.onload = () => { rawFGImage = raw; };
-            status.innerText = "⏳ AI Removing BG (Loading Model)...";
-            
-            try {
-                if (typeof window.removeBackground === 'undefined') { throw new Error("AI Library not loaded yet. Wait a sec."); }
+        window.ui = {
+            tab: (name) => {
+                document.querySelectorAll('.panel-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+                document.getElementById('tab-' + name).classList.add('active');
                 
-                // CONFIG: Tell AI where to find the WASM files on public CDN
-                const config = {
-                    publicPath: "https://static.img.ly/background-removal-data/1.0.5/", 
-                    progress: (key, current, total) => {
-                         status.innerText = `Downloading AI Model: ${Math.round((current/total)*100)}%`;
-                    }
-                };
+                // Handle active tab button
+                const btns = document.querySelectorAll('.tab-btn');
+                const map = ['files', 'tools', 'light', 'color', 'fx'];
+                btns.forEach(b => b.classList.remove('active'));
+                if(map.indexOf(name) >= 0) btns[map.indexOf(name)].classList.add('active');
+            },
+            status: (msg, color='orange') => {
+                const el = document.getElementById('statusText');
+                el.innerText = msg; el.style.color = color;
+            }
+        };
 
-                const blob = await window.removeBackground(file, config);
-                const img = new Image();
-                img.onload = () => {
-                    status.innerText = "✅ Background Removed.";
-                    stickerCanvas.width = img.width; stickerCanvas.height = img.height;
-                    filterCanvas.width = img.width; filterCanvas.height = img.height;
-                    brushCanvas.width = img.width; brushCanvas.height = img.height;
-                    stickerCtx.drawImage(img, 0, 0);
-                    fitCanvasToScreen();
-                    if(bgImage) {
-                        state.x = bgImage.naturalWidth/2; state.y = bgImage.naturalHeight/2;
-                        state.scale = (bgImage.naturalHeight*0.6)/img.height;
+        window.app = {
+            canvas: document.getElementById('mainCanvas'),
+            container: document.getElementById('canvasContainer'),
+            ctx: document.getElementById('mainCanvas').getContext('2d'),
+            
+            // Buffers: Sticker (Raw Cutout), Compose (Applying FX), Brush (Tools)
+            bufs: { sticker: document.createElement('canvas'), compose: document.createElement('canvas'), brush: document.createElement('canvas') },
+            ctxs: {}, bg: null, rawFG: null, noise: null,
+            
+            state: { 
+                x: 0, y: 0, scale: 1, angle: 0, 
+                dragging: false, mode: 'transform', 
+                lastP: {x:0, y:0}, mouse: {x:-100, y:-100},
+                displayScale: 1, 
+                // Updated Filter State Model
+                f: { 
+                    opacity: 100, exposure: 0, brightness: 0, contrast: 0, highlights: 0, shadows: 0,
+                    saturation: 0, vibrance: 0, temp: 0, tint: 0, hue: 0, sepia: 0,
+                    fuzzRadius: 0, fuzzInt: 0, smooth: 0, sharpness: 0, noise: 0
+                } 
+            },
+
+            init: function() {
+                this.ctxs.sticker = this.bufs.sticker.getContext('2d');
+                this.ctxs.compose = this.bufs.compose.getContext('2d');
+                this.ctxs.brush = this.bufs.brush.getContext('2d');
+                
+                window.addEventListener('resize', () => this.fit());
+                this.canvas.addEventListener('wheel', (e) => this.handleWheel(e), {passive: false});
+                
+                document.getElementById('fgInput').onchange = (e) => this.loadFG(e);
+                document.getElementById('bgInput').onchange = (e) => this.loadBG(e);
+                document.getElementById('btnSave').onclick = () => this.download();
+                
+                this.canvas.addEventListener('mousedown', (e) => this.start(e));
+                window.addEventListener('mousemove', (e) => this.trackMouse(e));
+                window.addEventListener('mouseup', () => this.end());
+                this.canvas.addEventListener('touchstart', (e) => this.start(e), {passive:false});
+                this.canvas.addEventListener('touchmove', (e) => {this.trackMouse(e); this.move(e)}, {passive:false});
+                this.canvas.addEventListener('touchend', () => this.end());
+
+                // Bind Sliders Automatically
+                const sliders = [
+                    'Exposure','Brightness','Contrast','Highlights','Shadows','Opacity',
+                    'Saturation','Vibrance','Temp','Tint','Hue','Sepia',
+                    'FuzzRadius','FuzzInt','Smooth','Sharpness','Noise'
+                ];
+                sliders.forEach(k => {
+                    const el = document.getElementById('filter' + k);
+                    if(el) el.oninput = (e) => { 
+                        // Convert CamelCase key to state key (camelCase)
+                        const stateKey = k.charAt(0).toLowerCase() + k.slice(1);
+                        this.state.f[stateKey] = parseFloat(e.target.value);
+                        this.draw();
+                    };
+                });
+
+                document.getElementById('brushSize').oninput = (e) => { document.getElementById('valSize').innerText = e.target.value; this.draw(); };
+                document.getElementById('brushFeather').oninput = (e) => { document.getElementById('valFeather').innerText = e.target.value; this.draw(); };
+                document.getElementById('rotateSlider').oninput = (e) => { this.state.angle = parseInt(e.target.value); document.getElementById('valRot').innerText = this.state.angle + '°'; this.draw(); };
+                document.getElementById('checkGhost').onchange = () => this.draw();
+                
+                this.setMode('transform');
+                document.getElementById('fgInput').disabled = false;
+                ui.status("✅ Cloud AI Ready", "#28a745");
+            },
+
+            handleWheel: function(e) {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 1.1 : 0.9;
+                const newScale = this.state.scale * delta;
+                if(newScale > 0.1 && newScale < 10) { this.state.scale = newScale; this.draw(); }
+            },
+
+            loadFG: async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const raw = new Image();
+                raw.src = URL.createObjectURL(file);
+                raw.onload = () => { this.rawFG = raw; };
+                ui.status("⏳ AI Processing...", "orange");
+
+                try {
+                    const config = {
+                        publicPath: "https://staticimgly.com/@imgly/background-removal-data/1.5.5/dist/",
+                        model: 'small', 
+                        debug: true,
+                        progress: (key, current, total) => { if(total > 0) ui.status(`AI: ${Math.round((current/total)*100)}%`, "orange"); }
+                    };
+
+                    const blob = await removeBackground(file, config);
+                    const img = new Image();
+                    img.onload = () => {
+                        ui.status("✅ Done", "#28a745");
+                        [this.bufs.sticker, this.bufs.compose, this.bufs.brush].forEach(c => { c.width = img.width; c.height = img.height; });
+                        this.ctxs.sticker.drawImage(img, 0, 0);
+                        this.fit();
+                        
+                        if(this.bg) {
+                            this.state.x = this.bg.naturalWidth/2; this.state.y = this.bg.naturalHeight/2;
+                            this.state.scale = (this.bg.naturalHeight*0.6)/img.height;
+                        } else {
+                            this.state.x = this.canvas.width/2; this.state.y = this.canvas.height/2;
+                            const fitRatio = Math.min(this.canvas.width / img.width, this.canvas.height / img.height);
+                            this.state.scale = fitRatio * 0.8;
+                        }
+                        this.draw();
+                    };
+                    img.src = URL.createObjectURL(blob);
+
+                } catch (err) {
+                    console.error(err);
+                    ui.status("❌ Error: " + err.message, "red");
+                }
+            },
+
+            loadBG: function(e){if(!e.target.files[0])return;const img=new Image();img.onload=()=>{this.bg=img;this.fit();if(this.bufs.sticker.width>0){this.state.x=this.bg.naturalWidth/2;this.state.y=this.bg.naturalHeight/2;this.state.scale=(this.bg.naturalHeight*0.6)/this.bufs.sticker.height;this.draw()}};img.src=URL.createObjectURL(e.target.files[0])},
+            fit: function(){const p=this.canvas.parentElement;let cw=p.clientWidth,ch=p.clientHeight;let rw=cw,rh=ch;if(this.bg){rw=this.bg.naturalWidth;rh=this.bg.naturalHeight}else if(this.bufs.sticker.width>0){rw=this.bufs.sticker.width;rh=this.bufs.sticker.height}this.canvas.width=rw;this.canvas.height=rh;const ir=rw/rh,cr=cw/ch;let cssW,cssH;if(ir>cr){cssW=cw;cssH=cw/ir}else{cssH=ch;cssW=ch*ir}this.canvas.style.width=cssW+'px';this.canvas.style.height=cssH+'px';this.state.displayScale=rw/cssW;this.draw()},
+            
+            // --- COMPOSITING ENGINE v4 ---
+            draw: function(){
+                const ctx = this.ctx;
+                const w = this.canvas.width, h = this.canvas.height;
+                ctx.clearRect(0, 0, w, h);
+
+                // 1. Background
+                if(this.bg) ctx.drawImage(this.bg, 0, 0);
+
+                // 2. Ghost Mode
+                if(document.getElementById('checkGhost').checked && this.rawFG){
+                    ctx.save(); this.transform(ctx); ctx.globalAlpha = 0.4;
+                    ctx.drawImage(this.rawFG, -this.rawFG.width/2, -this.rawFG.height/2);
+                    ctx.restore();
+                }
+
+                // 3. Sticker Processing
+                if(this.bufs.sticker.width > 0){
+                    const f = this.state.f;
+                    const sw = this.bufs.sticker.width, sh = this.bufs.sticker.height;
+                    const cx = this.ctxs.compose;
+
+                    cx.clearRect(0, 0, sw, sh);
+
+                    // --- A. Build CSS Filter String (Color Correction) ---
+                    // Combining Brightness/Exposure/Contrast
+                    let bVal = f.brightness + f.exposure + 100;
+                    let css = `brightness(${bVal}%) contrast(${f.contrast+100}%) saturate(${f.saturation + f.vibrance + 100}%) hue-rotate(${f.hue}deg) sepia(${f.sepia}%)`;
+                    
+                    // Smooth / Blur
+                    if(f.smooth > 0) css += ` blur(${f.smooth}px)`;
+
+                    // Sharpness (SVG Matrix)
+                    if(f.sharpness > 0){
+                        const k = f.sharpness / 20;
+                        document.getElementById('sharpMatrix').setAttribute('kernelMatrix', `0 ${-k} 0 ${-k} ${1+4*k} ${-k} 0 ${-k} 0`);
+                        css += ` url(#svgSharpness)`;
+                    }
+                    
+                    cx.filter = css;
+                    
+                    // --- B. Edge Fuzz (Feathering) Logic ---
+                    // If Fuzz is active, we draw using a blurred mask
+                    if(f.fuzzRadius > 0) {
+                        // 1. Draw Image into Compose Buffer with filters
+                        cx.drawImage(this.bufs.sticker, 0, 0);
+                        
+                        // 2. Create a Feather Mask using Destination-In
+                        // We create a temp canvas on the fly or use brush buffer to create the soft alpha
+                        // Optimization: Use 'filter: blur' on a destination-in draw
+                        cx.globalCompositeOperation = 'destination-in';
+                        cx.filter = `blur(${f.fuzzRadius}px)`;
+                        
+                        // Choke: Shrink the mask slightly if intensity is high
+                        const ch = f.fuzzInt;
+                        cx.drawImage(this.bufs.sticker, ch, ch, sw - ch*2, sh - ch*2, 0, 0, sw, sh);
+                        
+                        cx.filter = 'none'; // Reset filter
                     } else {
-                        state.x = canvas.width/2; state.y = canvas.height/2;
+                        // Standard Draw
+                        cx.drawImage(this.bufs.sticker, 0, 0);
                     }
-                    draw();
-                };
-                img.src = URL.createObjectURL(blob);
-            } catch (err) { status.innerText = "❌ Error: " + err; console.error(err); }
-        };
 
-        function getCoords(e) {
-            const rect = canvas.getBoundingClientRect();
-            let cx = e.clientX, cy = e.clientY;
-            if (e.touches && e.touches.length > 0) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
-            return { x: (cx - rect.left) * state.displayScale, y: (cy - rect.top) * state.displayScale };
-        }
-        function start(e) { state.isDragging = true; state.lastPaint = getCoords(e); handleBrush(e); }
-        function move(e) { 
-            if(!state.isDragging) return; 
-            e.preventDefault(); 
-            const pos = getCoords(e);
-            if(state.mode === 'transform') {
-                state.x += pos.x - state.lastPaint.x; state.y += pos.y - state.lastPaint.y;
-                state.lastPaint = pos; draw();
-            } else {
-                const dx = pos.x - state.lastPaint.x; const dy = pos.y - state.lastPaint.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                const size = parseInt(document.getElementById('brushSize').value);
-                const step = Math.max(1, size*0.2);
-                const angle = Math.atan2(dy, dx);
-                for(let i=0; i<dist; i+=step) stamp(state.lastPaint.x + Math.cos(angle)*i, state.lastPaint.y + Math.sin(angle)*i);
-                state.lastPaint = pos; draw();
-            }
-        }
-        function end() { state.isDragging = false; }
-        canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
-        canvas.addEventListener('touchstart', start, {passive: false}); canvas.addEventListener('touchmove', move, {passive: false}); canvas.addEventListener('touchend', end);
-        function handleBrush(e) { if(state.mode !== 'transform') { const p = getCoords(e); stamp(p.x, p.y); draw(); } }
+                    // --- C. Overlays (Tint, Highlights, Shadows) ---
+                    // IMPORTANT: We use source-atop to respect the alpha created above
+                    cx.globalCompositeOperation = 'source-atop';
+                    cx.filter = 'none';
 
-        function stamp(x, y) {
-            if(stickerCanvas.width===0) return;
-            let dx = x - state.x; let dy = y - state.y;
-            let rad = -state.angle * Math.PI/180;
-            let rx = dx*Math.cos(rad) - dy*Math.sin(rad);
-            let ry = dx*Math.sin(rad) + dy*Math.cos(rad);
-            let lx = (rx/state.scale) + stickerCanvas.width/2;
-            let ly = (ry/state.scale) + stickerCanvas.height/2;
+                    // Noise
+                    if(f.noise > 0){
+                        if(!this.noise) this.genNoise(150);
+                        cx.globalAlpha = f.noise / 100;
+                        cx.fillStyle = this.noise;
+                        cx.fillRect(0, 0, sw, sh);
+                        cx.globalAlpha = 1;
+                    }
 
-            const size = parseInt(document.getElementById('brushSize').value);
-            const feather = parseInt(document.getElementById('brushFeather').value);
+                    // Highlights (Screen White)
+                    if(f.highlights > 0){
+                        cx.globalCompositeOperation = 'screen';
+                        cx.fillStyle = `rgba(255,255,255,${f.highlights/100})`;
+                        cx.fillRect(0, 0, sw, sh);
+                    }
+
+                    // Shadows (Multiply Black)
+                    if(f.shadows > 0){
+                        cx.globalCompositeOperation = 'multiply';
+                        cx.fillStyle = `rgba(0,0,0,${f.shadows/100})`;
+                        cx.fillRect(0, 0, sw, sh);
+                    }
+
+                    // Temp (Orange/Blue Overlay)
+                    if(f.temp != 0) {
+                        cx.globalCompositeOperation = 'overlay'; 
+                        cx.fillStyle = f.temp > 0 ? `rgba(255,160,0,${Math.abs(f.temp)/100})` : `rgba(0,140,255,${Math.abs(f.temp)/100})`;
+                        cx.fillRect(0, 0, sw, sh);
+                    }
+
+                    // Tint (Green/Magenta)
+                    if(f.tint != 0) {
+                        cx.globalCompositeOperation = 'overlay';
+                        cx.fillStyle = f.tint > 0 ? `rgba(255,0,255,${Math.abs(f.tint)/100})` : `rgba(0,255,0,${Math.abs(f.tint)/100})`;
+                        cx.fillRect(0, 0, sw, sh);
+                    }
+
+                    // --- D. THE FIX: CLEANUP SPILL ---
+                    // Even with source-atop, 'screen' mode highlights can sometimes boost near-zero alpha pixels.
+                    // We perform one final hard clip using destination-in with the original sticker.
+                    // EXCEPT: If we are Fuzzing (Feathering), we skip this because we WANT the soft edges.
+                    if (f.fuzzRadius === 0) {
+                         cx.globalCompositeOperation = 'destination-in';
+                         cx.drawImage(this.bufs.sticker, 0, 0);
+                    }
+
+                    // Reset
+                    cx.globalCompositeOperation = 'source-over';
+
+                    // --- E. Final Output to Screen ---
+                    ctx.save();
+                    this.transform(ctx);
+                    ctx.globalAlpha = f.opacity / 100;
+                    ctx.drawImage(this.bufs.compose, -sw/2, -sh/2);
+                    ctx.restore();
+                }
+
+                // 4. Cursor
+                if(this.state.mode !== 'transform' && this.state.mouse.x > 0) {
+                    ctx.save(); ctx.beginPath();
+                    const sz = parseInt(document.getElementById('brushSize').value) * this.state.displayScale;
+                    ctx.strokeStyle = 'white'; ctx.lineWidth = 2 * this.state.displayScale;
+                    ctx.shadowColor = 'black'; ctx.shadowBlur = 4;
+                    ctx.arc(this.state.mouse.x, this.state.mouse.y, sz, 0, Math.PI * 2);
+                    ctx.stroke(); ctx.restore();
+                }
+            },
+
+            transform: function(c){c.translate(this.state.x,this.state.y);c.rotate(this.state.angle*Math.PI/180);c.scale(this.state.scale,this.state.scale)},
+            genNoise: function(amt){const c=document.createElement('canvas');c.width=100;c.height=100;const x=c.getContext('2d');const d=x.createImageData(100,100);const b=new Uint32Array(d.data.buffer);for(let i=0;i<b.length;i++)if(Math.random()<0.5)b[i]=(amt*2.55)<<24;x.putImageData(d,0,0);this.noise=this.ctx.createPattern(c,'repeat')},
             
-            if(state.mode === 'erase') {
-                stickerCtx.globalCompositeOperation = 'destination-out';
-                const g = stickerCtx.createRadialGradient(lx, ly, Math.max(0, size-feather), lx, ly, size);
-                g.addColorStop(0, 'black'); g.addColorStop(1, 'transparent');
-                stickerCtx.fillStyle = g; stickerCtx.beginPath(); stickerCtx.arc(lx,ly,size,0,Math.PI*2); stickerCtx.fill();
-            } else if(state.mode === 'restore' && rawFGImage) {
-                brushCtx.clearRect(0,0,brushCanvas.width, brushCanvas.height);
-                brushCtx.save(); brushCtx.translate(lx-size, ly-size); 
-                brushCtx.drawImage(rawFGImage, -(lx-size), -(ly-size)); brushCtx.restore();
-                
-                brushCtx.globalCompositeOperation = 'destination-in';
-                const g = brushCtx.createRadialGradient(size, size, Math.max(0, size-feather), size, size, size);
-                g.addColorStop(0, 'black'); g.addColorStop(1, 'transparent');
-                brushCtx.fillStyle = g; brushCtx.beginPath(); brushCtx.arc(size,size,size,0,Math.PI*2); brushCtx.fill();
-                
-                stickerCtx.globalCompositeOperation = 'source-over';
-                stickerCtx.drawImage(brushCanvas, lx-size, ly-size, size*2, size*2);
-            }
-        }
+            trackMouse: function(e){
+                const r = this.canvas.getBoundingClientRect();
+                let cx = e.clientX, cy = e.clientY;
+                if(e.touches && e.touches.length > 0){ cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+                this.state.mouse.x = (cx - r.left) * this.state.displayScale;
+                this.state.mouse.y = (cy - r.top) * this.state.displayScale;
+                if(this.state.dragging) this.move(e); else this.draw(); 
+            },
+            
+            getPos: function(e){ return {x: this.state.mouse.x, y: this.state.mouse.y}; },
+            start: function(e){ this.state.dragging = true; this.state.lastP = this.getPos(e); this.brush(e); },
+            move: function(e){ 
+                if(!this.state.dragging) return; 
+                e.preventDefault(); 
+                const p = this.getPos(e);
+                if(this.state.mode==='transform'){
+                    this.state.x += p.x - this.state.lastP.x;
+                    this.state.y += p.y - this.state.lastP.y;
+                    this.state.lastP = p;
+                    this.draw();
+                } else {
+                    const dx = p.x - this.state.lastP.x, dy = p.y - this.state.lastP.y;
+                    const d = Math.sqrt(dx*dx+dy*dy);
+                    const sz = parseInt(document.getElementById('brushSize').value);
+                    const step = Math.max(1, sz * 0.2);
+                    const a = Math.atan2(dy, dx);
+                    for(let i=0; i<d; i+=step) this.stamp(this.state.lastP.x + Math.cos(a)*i, this.state.lastP.y + Math.sin(a)*i);
+                    this.state.lastP = p;
+                    this.draw();
+                }
+            },
+            end: function(){ this.state.dragging = false; },
+            brush: function(e){ if(this.state.mode !== 'transform'){ const p = this.getPos(e); this.stamp(p.x, p.y); this.draw(); } },
+            stamp: function(x, y){
+                if(this.bufs.sticker.width === 0) return;
+                let dx = x - this.state.x, dy = y - this.state.y;
+                let r = -this.state.angle * Math.PI / 180;
+                let rx = dx * Math.cos(r) - dy * Math.sin(r);
+                let ry = dx * Math.sin(r) + dy * Math.cos(r);
+                let lx = (rx / this.state.scale) + this.bufs.sticker.width/2;
+                let ly = (ry / this.state.scale) + this.bufs.sticker.height/2;
 
-        function bind(id, key) { document.getElementById(id).oninput = (e) => { state.filters[key] = parseFloat(e.target.value); draw(); }; }
-        bind('filterOpacity', 'opacity'); bind('filterBright', 'brightness'); bind('filterContrast', 'contrast');
-        bind('filterTemp', 'temp'); bind('filterShadow', 'shadows'); bind('filterHigh', 'highlights');
-        bind('filterNoise', 'noise'); bind('filterEdgeRad', 'edgeRadius');
-        document.getElementById('rotateSlider').oninput = (e) => { state.angle = parseInt(e.target.value); draw(); };
-        document.getElementById('checkGhost').onchange = draw;
+                const sz = parseInt(document.getElementById('brushSize').value);
+                const f = parseInt(document.getElementById('brushFeather').value);
+                const sCtx = this.ctxs.sticker;
 
-        const setMode = (m) => { 
-            state.mode = m; 
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(m === 'transform' ? 'btnTransform' : (m === 'erase' ? 'btnErase' : 'btnRestore')).classList.add('active');
-            document.getElementById('brushControls').style.display = m === 'transform' ? 'none' : 'block';
+                if(this.state.mode === 'erase'){
+                    sCtx.globalCompositeOperation = 'destination-out';
+                    const g = sCtx.createRadialGradient(lx, ly, Math.max(0, sz - f), lx, ly, sz);
+                    g.addColorStop(0, 'black'); g.addColorStop(1, 'transparent');
+                    sCtx.fillStyle = g; sCtx.beginPath(); sCtx.arc(lx, ly, sz, 0, Math.PI*2); sCtx.fill();
+                } else if(this.state.mode === 'restore' && this.rawFG){
+                    const bCtx = this.ctxs.brush;
+                    const diameter = sz * 2;
+                    bCtx.canvas.width = diameter; bCtx.canvas.height = diameter;
+                    const sx = lx - sz; const sy = ly - sz;
+                    bCtx.clearRect(0, 0, diameter, diameter);
+                    bCtx.drawImage(this.rawFG, sx, sy, diameter, diameter, 0, 0, diameter, diameter);
+                    bCtx.globalCompositeOperation = 'destination-in';
+                    const g = bCtx.createRadialGradient(sz, sz, Math.max(0, sz-f), sz, sz, sz);
+                    g.addColorStop(0, 'black'); g.addColorStop(1, 'transparent');
+                    bCtx.fillStyle = g; bCtx.beginPath(); bCtx.arc(sz, sz, sz, 0, Math.PI*2); bCtx.fill();
+                    sCtx.globalCompositeOperation = 'source-over';
+                    sCtx.drawImage(bCtx.canvas, lx-sz, ly-sz);
+                }
+            },
+            setMode: function(m){
+                this.state.mode = m;
+                document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+                document.getElementById(m==='transform'?'btnTransform':(m==='erase'?'btnErase':'btnRestore')).classList.add('active');
+                document.getElementById('brushControls').style.display=m==='transform'?'none':'block';
+                if (m === 'transform') this.container.style.cursor = 'move';
+                else this.container.style.cursor = 'none';
+                this.draw();
+            },
+            resetFilters: function(){
+                this.state.f={opacity:100,exposure:0,brightness:0,contrast:0,highlights:0,shadows:0,saturation:0,vibrance:0,temp:0,tint:0,hue:0,sepia:0,fuzzRadius:0,fuzzInt:0,smooth:0,sharpness:0,noise:0};
+                document.querySelectorAll('.slider-grid input, #tab-fx input').forEach(i=>i.value=0);
+                document.getElementById('filterOpacity').value = 100;
+                this.draw();
+            },
+            download: function(){const lnk=document.createElement('a');lnk.download='imgpal-art.png';lnk.href=this.canvas.toDataURL();lnk.click()}
         };
-        document.getElementById('btnTransform').onclick = () => setMode('transform');
-        document.getElementById('btnErase').onclick = () => setMode('erase');
-        document.getElementById('btnRestore').onclick = () => setMode('restore');
-
-        document.getElementById('btnSave').onclick = () => {
-            const lnk = document.createElement('a'); lnk.download = 'imgpal-edit.png'; lnk.href = canvas.toDataURL(); lnk.click();
-        };
-        document.getElementById('btnResetFilters').onclick = () => {
-            state.filters = { opacity: 100, noise: 0, sharpness: 0, edgeRadius: 0, brightness: 0, contrast: 0, temp: 0, shadows: 0, highlights: 0, blur: 0 };
-            document.querySelectorAll('#tab-color input').forEach(i => i.value = (i.id === 'filterOpacity' ? 100 : 0));
-            draw();
-        };
+        
+        app.init();
     </script>
 </body>
 </html>
