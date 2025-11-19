@@ -8,51 +8,40 @@
     <meta name="apple-mobile-web-app-title" content="ImgPal">
     <title>ImgPal</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.0.5/dist/imgly-background-removal.min.js"></script>
-
     <style>
         body {
             display: flex; flex-direction: column; height: 100vh; margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #111; color: white; overflow: hidden; touch-action: none;
         }
-        
-        /* Mobile-First Layout: Canvas on top, Controls on bottom */
         .canvas-container {
             flex-grow: 1; position: relative; overflow: hidden;
             background-image: radial-gradient(#333 1px, transparent 1px);
             background-size: 20px 20px;
             display: flex; align-items: center; justify-content: center;
         }
-        
-        /* Controls UI */
         .ui-panel {
             height: 45vh; background-color: #1e1e1e; border-top: 1px solid #333;
             display: flex; flex-direction: column;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
         }
-
         .app-header {
             text-align: center; font-weight: 800; font-size: 14px; 
             padding: 8px; background: #181818; color: #007acc; letter-spacing: 1px;
             text-transform: uppercase;
         }
-
         .tabs { display: flex; background: #252526; }
         .tab-btn {
             flex: 1; padding: 15px; background: none; border: none; color: #888; font-size: 14px;
             transition: 0.2s;
         }
         .tab-btn.active { color: white; border-bottom: 2px solid #007acc; background: #333; font-weight: 600;}
-
         .panel-content { flex-grow: 1; overflow-y: auto; padding: 20px; display: none; }
         .panel-content.active { display: block; }
-
         .control-group { margin-bottom: 18px; }
         label { display: flex; justify-content: space-between; font-size: 12px; color: #ccc; margin-bottom: 6px; font-weight: 500; }
         input[type="range"] { width: 100%; accent-color: #007acc; height: 4px; background: #444; border-radius: 2px; }
         input[type="file"] { font-size: 12px; width: 100%; background: #333; padding: 10px; border-radius: 6px; }
-
         button.tool-btn {
             width: 100%; padding: 14px; margin-bottom: 8px;
             background: #333; border: none; color: white; border-radius: 8px; font-size: 14px; font-weight: 500;
@@ -60,13 +49,16 @@
         }
         button.tool-btn.active { background: #007acc; color: white; }
         button.save-btn { background: #28a745; margin-top: 15px; font-weight: 700; }
-
-        /* SVG Filter for Sharpness */
         svg { position: absolute; width: 0; height: 0; }
     </style>
+
+    <script type="module">
+        import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.0.5/+esm';
+        // Make it available globally for the main script
+        window.removeBackground = removeBackground;
+    </script>
 </head>
 <body>
-
     <svg><defs><filter id="svgSharpness"><feConvolveMatrix id="sharpMatrix" order="3" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0"/></filter></defs></svg>
 
     <div class="canvas-container">
@@ -91,7 +83,7 @@
                 <label>2. Add Background Image</label>
                 <input type="file" id="bgInput" accept="image/*">
             </div>
-            <button class="tool-btn save-btn" id="btnSave">Download ImgPal Art</button>
+            <button class="tool-btn save-btn" id="btnSave">Download Image</button>
         </div>
 
         <div id="tab-tools" class="panel-content">
@@ -100,7 +92,6 @@
                 <button class="tool-btn" id="btnErase" style="flex:1; margin:0;">Erase</button>
                 <button class="tool-btn" id="btnRestore" style="flex:1; margin:0;">Restore</button>
             </div>
-            
             <div id="brushControls" style="display:none; background: #252526; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                 <div class="control-group">
                     <label>Brush Size</label><input type="range" id="brushSize" min="5" max="150" value="40">
@@ -109,7 +100,6 @@
                     <label>Feather (Softness)</label><input type="range" id="brushFeather" min="0" max="50" value="20">
                 </div>
             </div>
-
             <div class="control-group">
                 <label>Rotation</label><input type="range" id="rotateSlider" min="0" max="360" value="0">
             </div>
@@ -121,29 +111,21 @@
 
         <div id="tab-color" class="panel-content">
             <div class="control-group"><label>Layer Opacity</label><input type="range" id="filterOpacity" min="0" max="100" value="100"></div>
-            
             <hr style="border-color: #333; margin: 15px 0;">
-            
             <div class="control-group"><label>Brightness</label><input type="range" id="filterBright" min="-100" max="100" value="0"></div>
             <div class="control-group"><label>Contrast</label><input type="range" id="filterContrast" min="-100" max="100" value="0"></div>
             <div class="control-group"><label>Warmth</label><input type="range" id="filterTemp" min="-100" max="100" value="0"></div>
-            
             <hr style="border-color: #333; margin: 15px 0;">
-            
             <div class="control-group"><label>Shadows Lift</label><input type="range" id="filterShadow" min="0" max="100" value="0"></div>
             <div class="control-group"><label>Highlights</label><input type="range" id="filterHigh" min="0" max="100" value="0"></div>
-            
             <hr style="border-color: #333; margin: 15px 0;">
-            
             <div class="control-group"><label>Grain / Noise</label><input type="range" id="filterNoise" min="0" max="100" value="0"></div>
             <div class="control-group"><label>Edge Feathering (Blend)</label><input type="range" id="filterEdgeRad" min="0" max="50" value="0"></div>
-            
             <button class="tool-btn" id="btnResetFilters" style="margin-top:20px; background: #444;">Reset All Colors</button>
         </div>
     </div>
 
     <script>
-        // --- UI TABS ---
         function switchTab(tabName) {
             document.querySelectorAll('.panel-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -151,11 +133,8 @@
             event.currentTarget.classList.add('active');
         }
 
-        // --- CORE ENGINE ---
         const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d');
-        
-        // Buffers
         let stickerCanvas = document.createElement('canvas'); let stickerCtx = stickerCanvas.getContext('2d');
         let filterCanvas = document.createElement('canvas'); let filterCtx = filterCanvas.getContext('2d');
         let brushCanvas = document.createElement('canvas'); let brushCtx = brushCanvas.getContext('2d');
@@ -171,7 +150,6 @@
             filters: { opacity: 100, noise: 0, sharpness: 0, edgeRadius: 0, brightness: 0, contrast: 0, temp: 0, shadows: 0, highlights: 0, blur: 0 }
         };
 
-        // --- RESIZE LOGIC ---
         function fitCanvasToScreen() {
             const container = canvas.parentElement;
             const cw = container.clientWidth;
@@ -197,11 +175,9 @@
         }
         window.addEventListener('resize', fitCanvasToScreen);
 
-        // --- DRAWING ---
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.globalCompositeOperation = 'source-over';
-            
             if (bgImage) ctx.drawImage(bgImage, 0, 0);
 
             if (document.getElementById('checkGhost').checked && rawFGImage) {
@@ -211,25 +187,19 @@
             }
 
             if (stickerCanvas.width > 0) {
-                // Filter Pass
                 filterCtx.clearRect(0,0, filterCanvas.width, filterCanvas.height);
                 const f = state.filters;
-                
-                // CSS Filters
                 filterCtx.filter = `brightness(${f.brightness+100}%) contrast(${f.contrast+100}%)`;
                 filterCtx.drawImage(stickerCanvas, 0, 0);
                 filterCtx.filter = 'none';
 
-                // Color Overlays (Anti-Bleed Clip Applied later)
                 applyOverlay(filterCtx, 'screen', `rgba(100,100,100,${f.shadows/100})`);
                 applyOverlay(filterCtx, 'soft-light', `rgba(255,255,255,${f.highlights/100})`);
                 if(f.temp != 0) applyOverlay(filterCtx, 'overlay', f.temp > 0 ? `rgba(255,140,0,${Math.abs(f.temp)/100})` : `rgba(0,100,255,${Math.abs(f.temp)/100})`);
 
-                // Clip Overlays to Sticker Shape (Anti-Halo)
                 filterCtx.globalCompositeOperation = 'destination-in';
                 filterCtx.drawImage(stickerCanvas, 0, 0);
 
-                // Noise
                 if (f.noise > 0) {
                     filterCtx.globalCompositeOperation = 'overlay';
                     if (!noisePattern) noisePattern = generateNoise(100);
@@ -237,25 +207,20 @@
                     filterCtx.fillStyle = noisePattern;
                     filterCtx.fillRect(0,0, filterCanvas.width, filterCanvas.height);
                     filterCtx.globalAlpha = 1.0;
-                    
-                    // Clip Noise
                     filterCtx.globalCompositeOperation = 'destination-in';
                     filterCtx.drawImage(stickerCanvas, 0, 0);
                 }
 
-                // Edge Blur (Clip)
                 if (f.edgeRadius > 0) {
                     brushCtx.clearRect(0,0, brushCanvas.width, brushCanvas.height);
                     brushCtx.globalCompositeOperation = 'source-over';
                     brushCtx.filter = `blur(${f.edgeRadius}px)`;
                     brushCtx.drawImage(stickerCanvas, 0, 0); 
                     brushCtx.filter = 'none';
-                    
                     filterCtx.globalCompositeOperation = 'destination-in';
                     filterCtx.drawImage(brushCanvas, 0, 0);
                 }
 
-                // Render to Main
                 ctx.save(); transform(ctx);
                 ctx.globalAlpha = f.opacity / 100;
                 ctx.drawImage(filterCanvas, -filterCanvas.width/2, -filterCanvas.height/2);
@@ -268,12 +233,10 @@
             c.rotate(state.angle * Math.PI/180);
             c.scale(state.scale, state.scale);
         }
-
         function applyOverlay(c, mode, color) {
             c.globalCompositeOperation = mode; c.fillStyle = color;
             c.fillRect(0, 0, filterCanvas.width, filterCanvas.height);
         }
-
         function generateNoise(amt) {
             const nc = document.createElement('canvas'); nc.width=100; nc.height=100;
             const nx = nc.getContext('2d');
@@ -284,16 +247,11 @@
             return ctx.createPattern(nc, 'repeat');
         }
 
-        // --- INPUTS ---
         const status = document.getElementById('statusText');
-        
         document.getElementById('bgInput').onchange = (e) => {
             const img = new Image();
             img.onload = () => { 
-                bgImage = img; 
-                fitCanvasToScreen(); 
-                
-                // Auto Center on BG Load
+                bgImage = img; fitCanvasToScreen(); 
                 if(stickerCanvas.width > 0) {
                      state.x = bgImage.naturalWidth/2; state.y = bgImage.naturalHeight/2;
                      state.scale = (bgImage.naturalHeight*0.6)/stickerCanvas.height;
@@ -306,17 +264,23 @@
         document.getElementById('fgInput').onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
-            // Load Raw for Restore
             const raw = new Image();
             raw.src = URL.createObjectURL(file);
             raw.onload = () => { rawFGImage = raw; };
-
-            status.innerText = "⏳ ImgPal AI Removing Background...";
+            status.innerText = "⏳ AI Removing BG (Loading Model)...";
             
             try {
-                // CLIENT SIDE AI REMOVAL
-                const blob = await imglyRemoveBackground(file);
+                if (typeof window.removeBackground === 'undefined') { throw new Error("AI Library not loaded yet. Wait a sec."); }
+                
+                // CONFIG: Tell AI where to find the WASM files on public CDN
+                const config = {
+                    publicPath: "https://static.img.ly/background-removal-data/1.0.5/", 
+                    progress: (key, current, total) => {
+                         status.innerText = `Downloading AI Model: ${Math.round((current/total)*100)}%`;
+                    }
+                };
+
+                const blob = await window.removeBackground(file, config);
                 const img = new Image();
                 img.onload = () => {
                     status.innerText = "✅ Background Removed.";
@@ -324,9 +288,7 @@
                     filterCanvas.width = img.width; filterCanvas.height = img.height;
                     brushCanvas.width = img.width; brushCanvas.height = img.height;
                     stickerCtx.drawImage(img, 0, 0);
-
                     fitCanvasToScreen();
-                    // Auto center
                     if(bgImage) {
                         state.x = bgImage.naturalWidth/2; state.y = bgImage.naturalHeight/2;
                         state.scale = (bgImage.naturalHeight*0.6)/img.height;
@@ -336,58 +298,40 @@
                     draw();
                 };
                 img.src = URL.createObjectURL(blob);
-            } catch (err) {
-                status.innerText = "❌ Error: " + err;
-            }
+            } catch (err) { status.innerText = "❌ Error: " + err; console.error(err); }
         };
 
-        // --- TOUCH / MOUSE EVENTS ---
         function getCoords(e) {
             const rect = canvas.getBoundingClientRect();
             let cx = e.clientX, cy = e.clientY;
             if (e.touches && e.touches.length > 0) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
             return { x: (cx - rect.left) * state.displayScale, y: (cy - rect.top) * state.displayScale };
         }
-
         function start(e) { state.isDragging = true; state.lastPaint = getCoords(e); handleBrush(e); }
         function move(e) { 
             if(!state.isDragging) return; 
             e.preventDefault(); 
             const pos = getCoords(e);
-            
             if(state.mode === 'transform') {
-                state.x += pos.x - state.lastPaint.x;
-                state.y += pos.y - state.lastPaint.y;
-                state.lastPaint = pos;
-                draw();
+                state.x += pos.x - state.lastPaint.x; state.y += pos.y - state.lastPaint.y;
+                state.lastPaint = pos; draw();
             } else {
-                // Brush Interpolation
                 const dx = pos.x - state.lastPaint.x; const dy = pos.y - state.lastPaint.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 const size = parseInt(document.getElementById('brushSize').value);
                 const step = Math.max(1, size*0.2);
                 const angle = Math.atan2(dy, dx);
-                for(let i=0; i<dist; i+=step) {
-                    stamp(state.lastPaint.x + Math.cos(angle)*i, state.lastPaint.y + Math.sin(angle)*i);
-                }
-                state.lastPaint = pos;
-                draw();
+                for(let i=0; i<dist; i+=step) stamp(state.lastPaint.x + Math.cos(angle)*i, state.lastPaint.y + Math.sin(angle)*i);
+                state.lastPaint = pos; draw();
             }
         }
         function end() { state.isDragging = false; }
-
-        canvas.addEventListener('mousedown', start);
-        canvas.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', end);
-        canvas.addEventListener('touchstart', start, {passive: false});
-        canvas.addEventListener('touchmove', move, {passive: false});
-        canvas.addEventListener('touchend', end);
-
+        canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+        canvas.addEventListener('touchstart', start, {passive: false}); canvas.addEventListener('touchmove', move, {passive: false}); canvas.addEventListener('touchend', end);
         function handleBrush(e) { if(state.mode !== 'transform') { const p = getCoords(e); stamp(p.x, p.y); draw(); } }
 
         function stamp(x, y) {
             if(stickerCanvas.width===0) return;
-            // Transform global to local
             let dx = x - state.x; let dy = y - state.y;
             let rad = -state.angle * Math.PI/180;
             let rx = dx*Math.cos(rad) - dy*Math.sin(rad);
@@ -406,23 +350,19 @@
             } else if(state.mode === 'restore' && rawFGImage) {
                 brushCtx.clearRect(0,0,brushCanvas.width, brushCanvas.height);
                 brushCtx.save(); brushCtx.translate(lx-size, ly-size); 
-                brushCtx.drawImage(rawFGImage, -(lx-size), -(ly-size)); 
-                brushCtx.restore();
+                brushCtx.drawImage(rawFGImage, -(lx-size), -(ly-size)); brushCtx.restore();
                 
                 brushCtx.globalCompositeOperation = 'destination-in';
                 const g = brushCtx.createRadialGradient(size, size, Math.max(0, size-feather), size, size, size);
                 g.addColorStop(0, 'black'); g.addColorStop(1, 'transparent');
                 brushCtx.fillStyle = g; brushCtx.beginPath(); brushCtx.arc(size,size,size,0,Math.PI*2); brushCtx.fill();
-
+                
                 stickerCtx.globalCompositeOperation = 'source-over';
                 stickerCtx.drawImage(brushCanvas, lx-size, ly-size, size*2, size*2);
             }
         }
 
-        // --- CONTROLS WIRING ---
-        function bind(id, key) { 
-            document.getElementById(id).oninput = (e) => { state.filters[key] = parseFloat(e.target.value); draw(); }; 
-        }
+        function bind(id, key) { document.getElementById(id).oninput = (e) => { state.filters[key] = parseFloat(e.target.value); draw(); }; }
         bind('filterOpacity', 'opacity'); bind('filterBright', 'brightness'); bind('filterContrast', 'contrast');
         bind('filterTemp', 'temp'); bind('filterShadow', 'shadows'); bind('filterHigh', 'highlights');
         bind('filterNoise', 'noise'); bind('filterEdgeRad', 'edgeRadius');
@@ -442,7 +382,6 @@
         document.getElementById('btnSave').onclick = () => {
             const lnk = document.createElement('a'); lnk.download = 'imgpal-edit.png'; lnk.href = canvas.toDataURL(); lnk.click();
         };
-        
         document.getElementById('btnResetFilters').onclick = () => {
             state.filters = { opacity: 100, noise: 0, sharpness: 0, edgeRadius: 0, brightness: 0, contrast: 0, temp: 0, shadows: 0, highlights: 0, blur: 0 };
             document.querySelectorAll('#tab-color input').forEach(i => i.value = (i.id === 'filterOpacity' ? 100 : 0));
