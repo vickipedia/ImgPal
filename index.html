@@ -3,24 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ImgPal Cloud (v3.0)</title>
+    <title>ImgPal Cloud (v4.0 Ultimate)</title>
     
     <style>
         :root { --accent: #007acc; --bg: #111; --panel: #1e1e1e; --width-panel: 320px; }
         
-        /* Changed flex-direction to row for side-by-side layout */
         body { display: flex; flex-direction: row; height: 100vh; margin: 0; font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); color: white; overflow: hidden; touch-action: none; }
         
-        /* Canvas takes remaining space */
         .canvas-container { flex-grow: 1; position: relative; overflow: hidden; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; display: flex; align-items: center; justify-content: center; z-index: 1; }
         canvas { box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 100%; max-height: 100%; }
         
-        /* Vertical Left Panel Styling */
         .ui-panel { 
             width: var(--width-panel); 
             height: 100vh; 
             background-color: var(--panel); 
-            border-right: 1px solid #333; /* Right border instead of top */
+            border-right: 1px solid #333;
             display: flex; 
             flex-direction: column; 
             z-index: 10; 
@@ -29,15 +26,12 @@
             position: relative;
         }
 
-        /* Minimized State */
         .ui-panel.closed { margin-left: calc(var(--width-panel) * -1); }
 
-        /* Header & Dismiss Button */
         .app-header { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: #000; border-bottom: 1px solid #333; font-size: 14px; font-weight: 800; letter-spacing: 1px; color: var(--accent); }
         .btn-icon { background: none; border: none; color: #888; cursor: pointer; font-size: 16px; padding: 4px; transition: 0.2s; }
         .btn-icon:hover { color: white; }
 
-        /* Restore Button (Floating) */
         #btnRestorePanel {
             position: absolute; top: 15px; left: 15px; z-index: 20;
             background: var(--panel); border: 1px solid #444; color: white;
@@ -45,10 +39,8 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             display: none; font-weight: 600; font-size: 18px;
         }
-        /* Show restore button only when panel is closed */
         body.panel-hidden #btnRestorePanel { display: block; }
         
-        /* Wrapped Tabs for Narrow Width */
         .tabs { display: flex; flex-wrap: wrap; background: #252526; border-bottom: 1px solid #333; }
         .tab-btn { flex: 1 1 auto; padding: 12px 10px; background: none; border: none; color: #888; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s; text-transform: uppercase; border-bottom: 2px solid transparent; }
         .tab-btn.active { color: white; background: var(--panel); border-bottom: 2px solid var(--accent); border-top: none; }
@@ -58,8 +50,7 @@
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Grid adjustments for vertical layout */
-        .slider-grid { display: flex; flex-direction: column; gap: 15px; } /* Stack sliders vertically */
+        .slider-grid { display: flex; flex-direction: column; gap: 15px; }
         .control-group { margin-bottom: 12px; }
         
         label { display: flex; justify-content: space-between; font-size: 11px; color: #bbb; margin-bottom: 6px; font-weight: 600; letter-spacing: 0.5px; }
@@ -74,7 +65,6 @@
         .status-bar { font-size: 11px; color: orange; margin-top: 8px; font-weight: 600; text-align: center; min-height: 16px; }
         svg { position: absolute; width: 0; height: 0; }
 
-        /* Scrollbar Styling for sidebar */
         .panel-content::-webkit-scrollbar { width: 6px; }
         .panel-content::-webkit-scrollbar-track { background: #1e1e1e; }
         .panel-content::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
@@ -173,7 +163,7 @@
         window.togglePanel = () => {
             document.getElementById('mainPanel').classList.toggle('closed');
             document.body.classList.toggle('panel-hidden');
-            setTimeout(() => app.fit(), 300); // Refit canvas after animation
+            setTimeout(() => app.fit(), 300);
         };
 
         window.ui = {
@@ -182,7 +172,6 @@
                 document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
                 document.getElementById('tab-' + name).classList.add('active');
                 
-                // Handle active tab button logic
                 const btns = document.querySelectorAll('.tab-btn');
                 const map = ['files', 'tools', 'light', 'color', 'fx'];
                 btns.forEach(b => b.classList.remove('active'));
@@ -329,6 +318,7 @@
 
                     cx.clearRect(0, 0, sw, sh);
 
+                    // --- A. Color Prep ---
                     let bVal = f.brightness + f.exposure + 100;
                     let css = `brightness(${bVal}%) contrast(${f.contrast+100}%) saturate(${f.saturation + f.vibrance + 100}%) hue-rotate(${f.hue}deg) sepia(${f.sepia}%)`;
                     
@@ -342,17 +332,35 @@
                     
                     cx.filter = css;
                     
+                    // --- B. Edge Fuzz (Feathering) ---
                     if(f.fuzzRadius > 0) {
                         cx.drawImage(this.bufs.sticker, 0, 0);
+                        
+                        // Use Brush Buffer to create a clean, CHOKED mask
+                        // Previous logic was zooming IN (Crop->Full), which spread the mask out (and got clipped).
+                        // We want to zoom OUT (Full->Shrunk) to pull the mask IN.
+                        const bx = this.ctxs.brush;
+                        bx.clearRect(0, 0, sw, sh);
+                        bx.globalCompositeOperation = 'source-over';
+                        
+                        const ch = f.fuzzInt;
+                        // Draw: Source(Full) -> Dest(Shrunk/Choked)
+                        bx.drawImage(this.bufs.sticker, 0, 0, sw, sh, ch, ch, sw - ch*2, sh - ch*2);
+                        
+                        // Apply this mask to the Compose buffer
                         cx.globalCompositeOperation = 'destination-in';
                         cx.filter = `blur(${f.fuzzRadius}px)`;
-                        const ch = f.fuzzInt;
-                        cx.drawImage(this.bufs.sticker, ch, ch, sw - ch*2, sh - ch*2, 0, 0, sw, sh);
+                        cx.drawImage(this.bufs.brush, 0, 0); 
                         cx.filter = 'none'; 
+                        
+                        // Save result for cleanup step
+                        bx.clearRect(0, 0, sw, sh);
+                        bx.drawImage(this.bufs.compose, 0, 0);
                     } else {
                         cx.drawImage(this.bufs.sticker, 0, 0);
                     }
 
+                    // --- C. Tints & Overlays ---
                     cx.globalCompositeOperation = 'source-atop';
                     cx.filter = 'none';
 
@@ -388,13 +396,18 @@
                         cx.fillRect(0, 0, sw, sh);
                     }
 
-                    if (f.fuzzRadius === 0) {
-                         cx.globalCompositeOperation = 'destination-in';
+                    // --- D. Final Cleanup ---
+                    // Restore the clean alpha edge
+                    cx.globalCompositeOperation = 'destination-in';
+                    if (f.fuzzRadius > 0) {
+                         cx.drawImage(this.bufs.brush, 0, 0);
+                    } else {
                          cx.drawImage(this.bufs.sticker, 0, 0);
                     }
 
                     cx.globalCompositeOperation = 'source-over';
 
+                    // --- E. Output ---
                     ctx.save();
                     this.transform(ctx);
                     ctx.globalAlpha = f.opacity / 100;
@@ -496,7 +509,7 @@
                 document.getElementById('filterOpacity').value = 100;
                 this.draw();
             },
-            download: function(){const lnk=document.createElement('a');lnk.download='imgpal-out.png';lnk.href=this.canvas.toDataURL();lnk.click()}
+            download: function(){const lnk=document.createElement('a');lnk.download='imgpal-art.png';lnk.href=this.canvas.toDataURL();lnk.click()}
         };
         
         app.init();
