@@ -3,57 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ImgPal Cloud (v4.0 Ultimate)</title>
+    <title>ImgPal Cloud (v3.0)</title>
     
     <style>
-        :root { --accent: #007acc; --bg: #111; --panel: #1e1e1e; }
-        body { display: flex; flex-direction: column; height: 100vh; margin: 0; font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); color: white; overflow: hidden; touch-action: none; }
-        .canvas-container { flex-grow: 1; position: relative; overflow: hidden; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; display: flex; align-items: center; justify-content: center; }
-        canvas { box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 100%; max-height: 100%; }
-        .ui-panel { height: 45vh; background-color: var(--panel); border-top: 1px solid #333; display: flex; flex-direction: column; z-index: 10; }
-        .app-header { padding: 12px; text-align: center; font-weight: 800; letter-spacing: 1px; background: #000; border-bottom: 1px solid #333; font-size: 14px; color: var(--accent); }
+        :root { --accent: #007acc; --bg: #111; --panel: #1e1e1e; --width-panel: 320px; }
         
-        /* Scrollable Tabs */
-        .tabs { display: flex; background: #252526; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
-        .tabs::-webkit-scrollbar { display: none; }
-        .tab-btn { flex: 0 0 auto; padding: 15px 20px; background: none; border: none; color: #888; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
-        .tab-btn.active { color: white; background: var(--panel); border-top: 2px solid var(--accent); }
+        /* Changed flex-direction to row for side-by-side layout */
+        body { display: flex; flex-direction: row; height: 100vh; margin: 0; font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); color: white; overflow: hidden; touch-action: none; }
+        
+        /* Canvas takes remaining space */
+        .canvas-container { flex-grow: 1; position: relative; overflow: hidden; background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px; display: flex; align-items: center; justify-content: center; z-index: 1; }
+        canvas { box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 100%; max-height: 100%; }
+        
+        /* Vertical Left Panel Styling */
+        .ui-panel { 
+            width: var(--width-panel); 
+            height: 100vh; 
+            background-color: var(--panel); 
+            border-right: 1px solid #333; /* Right border instead of top */
+            display: flex; 
+            flex-direction: column; 
+            z-index: 10; 
+            flex-shrink: 0;
+            transition: margin-left 0.3s ease-in-out;
+            position: relative;
+        }
+
+        /* Minimized State */
+        .ui-panel.closed { margin-left: calc(var(--width-panel) * -1); }
+
+        /* Header & Dismiss Button */
+        .app-header { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: #000; border-bottom: 1px solid #333; font-size: 14px; font-weight: 800; letter-spacing: 1px; color: var(--accent); }
+        .btn-icon { background: none; border: none; color: #888; cursor: pointer; font-size: 16px; padding: 4px; transition: 0.2s; }
+        .btn-icon:hover { color: white; }
+
+        /* Restore Button (Floating) */
+        #btnRestorePanel {
+            position: absolute; top: 15px; left: 15px; z-index: 20;
+            background: var(--panel); border: 1px solid #444; color: white;
+            padding: 10px 14px; border-radius: 6px; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: none; font-weight: 600; font-size: 18px;
+        }
+        /* Show restore button only when panel is closed */
+        body.panel-hidden #btnRestorePanel { display: block; }
+        
+        /* Wrapped Tabs for Narrow Width */
+        .tabs { display: flex; flex-wrap: wrap; background: #252526; border-bottom: 1px solid #333; }
+        .tab-btn { flex: 1 1 auto; padding: 12px 10px; background: none; border: none; color: #888; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s; text-transform: uppercase; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: white; background: var(--panel); border-bottom: 2px solid var(--accent); border-top: none; }
         
         .panel-content { flex-grow: 1; overflow-y: auto; padding: 20px; display: none; }
-        .panel-content.active { display: block; }
+        .panel-content.active { display: block; animation: fadeIn 0.2s; }
         
-        /* Grid for sliders */
-        .slider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .control-group { margin-bottom: 15px; }
-        .full-width { grid-column: span 2; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Grid adjustments for vertical layout */
+        .slider-grid { display: flex; flex-direction: column; gap: 15px; } /* Stack sliders vertically */
+        .control-group { margin-bottom: 12px; }
         
-        label { display: flex; justify-content: space-between; font-size: 11px; color: #bbb; margin-bottom: 8px; font-weight: 600; letter-spacing: 0.5px; }
+        label { display: flex; justify-content: space-between; font-size: 11px; color: #bbb; margin-bottom: 6px; font-weight: 600; letter-spacing: 0.5px; }
         input[type="range"] { width: 100%; accent-color: var(--accent); height: 4px; background: #444; border-radius: 2px; outline: none; }
-        input[type="file"] { font-size: 12px; width: 100%; background: #333; padding: 12px; border-radius: 8px; color: #fff; box-sizing: border-box; }
-        input[type="file"]:disabled { opacity: 0.5; }
+        input[type="file"] { font-size: 11px; width: 100%; background: #333; padding: 10px; border-radius: 6px; color: #fff; box-sizing: border-box; }
         
-        .btn-grid { display: flex; gap: 8px; margin-bottom: 15px; }
-        button.tool-btn { flex: 1; padding: 12px; background: #333; border: 1px solid transparent; color: white; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        button.tool-btn { padding: 10px; background: #333; border: 1px solid transparent; color: white; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         button.tool-btn.active { background: var(--accent); }
-        button.save-btn { width: 100%; background: #28a745; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 700; margin-top: 10px; cursor: pointer; }
+        button.save-btn { width: 100%; background: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 700; margin-top: 10px; cursor: pointer; }
         
         .status-bar { font-size: 11px; color: orange; margin-top: 8px; font-weight: 600; text-align: center; min-height: 16px; }
         svg { position: absolute; width: 0; height: 0; }
+
+        /* Scrollbar Styling for sidebar */
+        .panel-content::-webkit-scrollbar { width: 6px; }
+        .panel-content::-webkit-scrollbar-track { background: #1e1e1e; }
+        .panel-content::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
     </style>
 </head>
 <body>
     <svg><defs><filter id="svgSharpness"><feConvolveMatrix id="sharpMatrix" order="3" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0"/></filter></defs></svg>
 
-    <div class="canvas-container" id="canvasContainer"><canvas id="mainCanvas"></canvas></div>
-    
-    <div class="ui-panel">
-        <div class="app-header">IMGPAL CLOUD (v4.0 Ultimate)</div>
+    <button id="btnRestorePanel" onclick="togglePanel()">☰</button>
+
+    <div class="ui-panel" id="mainPanel">
+        <div class="app-header">
+            <span>IMGPAL CLOUD</span>
+            <button class="btn-icon" onclick="togglePanel()" title="Minimize Panel">✕</button>
+        </div>
         <div class="tabs">
             <button class="tab-btn active" onclick="ui.tab('files')">Assets</button>
             <button class="tab-btn" onclick="ui.tab('tools')">Tools</button>
             <button class="tab-btn" onclick="ui.tab('light')">Light</button>
             <button class="tab-btn" onclick="ui.tab('color')">Color</button>
-            <button class="tab-btn" onclick="ui.tab('fx')">FX / Edges</button>
+            <button class="tab-btn" onclick="ui.tab('fx')">FX</button>
         </div>
 
         <div id="tab-files" class="panel-content active">
@@ -66,7 +108,9 @@
                 <label>2. Add Background</label>
                 <input type="file" id="bgInput" accept="image/*">
             </div>
-            <button class="save-btn" id="btnSave">Download Image</button>
+            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #333;">
+                <button class="save-btn" id="btnSave">Download Image</button>
+            </div>
         </div>
 
         <div id="tab-tools" class="panel-content">
@@ -117,12 +161,20 @@
             <div class="control-group"><label>Smooth (Surface Blur)</label><input type="range" id="filterSmooth" min="0" max="20" value="0"></div>
             <div class="control-group"><label>Sharpness</label><input type="range" id="filterSharpness" min="0" max="100" value="0"></div>
             <div class="control-group"><label>Grain / Noise</label><input type="range" id="filterNoise" min="0" max="100" value="0"></div>
-            <button class="tool-btn" onclick="app.resetFilters()" style="background: #444; margin-top:15px;">Reset All Filters</button>
+            <button class="tool-btn" onclick="app.resetFilters()" style="background: #444; margin-top:15px; width:100%">Reset All Filters</button>
         </div>
     </div>
 
+    <div class="canvas-container" id="canvasContainer"><canvas id="mainCanvas"></canvas></div>
+
     <script type="module">
         import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
+
+        window.togglePanel = () => {
+            document.getElementById('mainPanel').classList.toggle('closed');
+            document.body.classList.toggle('panel-hidden');
+            setTimeout(() => app.fit(), 300); // Refit canvas after animation
+        };
 
         window.ui = {
             tab: (name) => {
@@ -130,7 +182,7 @@
                 document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
                 document.getElementById('tab-' + name).classList.add('active');
                 
-                // Handle active tab button
+                // Handle active tab button logic
                 const btns = document.querySelectorAll('.tab-btn');
                 const map = ['files', 'tools', 'light', 'color', 'fx'];
                 btns.forEach(b => b.classList.remove('active'));
@@ -147,7 +199,6 @@
             container: document.getElementById('canvasContainer'),
             ctx: document.getElementById('mainCanvas').getContext('2d'),
             
-            // Buffers: Sticker (Raw Cutout), Compose (Applying FX), Brush (Tools)
             bufs: { sticker: document.createElement('canvas'), compose: document.createElement('canvas'), brush: document.createElement('canvas') },
             ctxs: {}, bg: null, rawFG: null, noise: null,
             
@@ -156,7 +207,6 @@
                 dragging: false, mode: 'transform', 
                 lastP: {x:0, y:0}, mouse: {x:-100, y:-100},
                 displayScale: 1, 
-                // Updated Filter State Model
                 f: { 
                     opacity: 100, exposure: 0, brightness: 0, contrast: 0, highlights: 0, shadows: 0,
                     saturation: 0, vibrance: 0, temp: 0, tint: 0, hue: 0, sepia: 0,
@@ -183,7 +233,6 @@
                 this.canvas.addEventListener('touchmove', (e) => {this.trackMouse(e); this.move(e)}, {passive:false});
                 this.canvas.addEventListener('touchend', () => this.end());
 
-                // Bind Sliders Automatically
                 const sliders = [
                     'Exposure','Brightness','Contrast','Highlights','Shadows','Opacity',
                     'Saturation','Vibrance','Temp','Tint','Hue','Sepia',
@@ -192,7 +241,6 @@
                 sliders.forEach(k => {
                     const el = document.getElementById('filter' + k);
                     if(el) el.oninput = (e) => { 
-                        // Convert CamelCase key to state key (camelCase)
                         const stateKey = k.charAt(0).toLowerCase() + k.slice(1);
                         this.state.f[stateKey] = parseFloat(e.target.value);
                         this.draw();
@@ -261,23 +309,19 @@
             loadBG: function(e){if(!e.target.files[0])return;const img=new Image();img.onload=()=>{this.bg=img;this.fit();if(this.bufs.sticker.width>0){this.state.x=this.bg.naturalWidth/2;this.state.y=this.bg.naturalHeight/2;this.state.scale=(this.bg.naturalHeight*0.6)/this.bufs.sticker.height;this.draw()}};img.src=URL.createObjectURL(e.target.files[0])},
             fit: function(){const p=this.canvas.parentElement;let cw=p.clientWidth,ch=p.clientHeight;let rw=cw,rh=ch;if(this.bg){rw=this.bg.naturalWidth;rh=this.bg.naturalHeight}else if(this.bufs.sticker.width>0){rw=this.bufs.sticker.width;rh=this.bufs.sticker.height}this.canvas.width=rw;this.canvas.height=rh;const ir=rw/rh,cr=cw/ch;let cssW,cssH;if(ir>cr){cssW=cw;cssH=cw/ir}else{cssH=ch;cssW=ch*ir}this.canvas.style.width=cssW+'px';this.canvas.style.height=cssH+'px';this.state.displayScale=rw/cssW;this.draw()},
             
-            // --- COMPOSITING ENGINE v4 ---
             draw: function(){
                 const ctx = this.ctx;
                 const w = this.canvas.width, h = this.canvas.height;
                 ctx.clearRect(0, 0, w, h);
 
-                // 1. Background
                 if(this.bg) ctx.drawImage(this.bg, 0, 0);
 
-                // 2. Ghost Mode
                 if(document.getElementById('checkGhost').checked && this.rawFG){
                     ctx.save(); this.transform(ctx); ctx.globalAlpha = 0.4;
                     ctx.drawImage(this.rawFG, -this.rawFG.width/2, -this.rawFG.height/2);
                     ctx.restore();
                 }
 
-                // 3. Sticker Processing
                 if(this.bufs.sticker.width > 0){
                     const f = this.state.f;
                     const sw = this.bufs.sticker.width, sh = this.bufs.sticker.height;
@@ -285,15 +329,11 @@
 
                     cx.clearRect(0, 0, sw, sh);
 
-                    // --- A. Build CSS Filter String (Color Correction) ---
-                    // Combining Brightness/Exposure/Contrast
                     let bVal = f.brightness + f.exposure + 100;
                     let css = `brightness(${bVal}%) contrast(${f.contrast+100}%) saturate(${f.saturation + f.vibrance + 100}%) hue-rotate(${f.hue}deg) sepia(${f.sepia}%)`;
                     
-                    // Smooth / Blur
                     if(f.smooth > 0) css += ` blur(${f.smooth}px)`;
 
-                    // Sharpness (SVG Matrix)
                     if(f.sharpness > 0){
                         const k = f.sharpness / 20;
                         document.getElementById('sharpMatrix').setAttribute('kernelMatrix', `0 ${-k} 0 ${-k} ${1+4*k} ${-k} 0 ${-k} 0`);
@@ -302,34 +342,20 @@
                     
                     cx.filter = css;
                     
-                    // --- B. Edge Fuzz (Feathering) Logic ---
-                    // If Fuzz is active, we draw using a blurred mask
                     if(f.fuzzRadius > 0) {
-                        // 1. Draw Image into Compose Buffer with filters
                         cx.drawImage(this.bufs.sticker, 0, 0);
-                        
-                        // 2. Create a Feather Mask using Destination-In
-                        // We create a temp canvas on the fly or use brush buffer to create the soft alpha
-                        // Optimization: Use 'filter: blur' on a destination-in draw
                         cx.globalCompositeOperation = 'destination-in';
                         cx.filter = `blur(${f.fuzzRadius}px)`;
-                        
-                        // Choke: Shrink the mask slightly if intensity is high
                         const ch = f.fuzzInt;
                         cx.drawImage(this.bufs.sticker, ch, ch, sw - ch*2, sh - ch*2, 0, 0, sw, sh);
-                        
-                        cx.filter = 'none'; // Reset filter
+                        cx.filter = 'none'; 
                     } else {
-                        // Standard Draw
                         cx.drawImage(this.bufs.sticker, 0, 0);
                     }
 
-                    // --- C. Overlays (Tint, Highlights, Shadows) ---
-                    // IMPORTANT: We use source-atop to respect the alpha created above
                     cx.globalCompositeOperation = 'source-atop';
                     cx.filter = 'none';
 
-                    // Noise
                     if(f.noise > 0){
                         if(!this.noise) this.genNoise(150);
                         cx.globalAlpha = f.noise / 100;
@@ -338,47 +364,37 @@
                         cx.globalAlpha = 1;
                     }
 
-                    // Highlights (Screen White)
                     if(f.highlights > 0){
                         cx.globalCompositeOperation = 'screen';
                         cx.fillStyle = `rgba(255,255,255,${f.highlights/100})`;
                         cx.fillRect(0, 0, sw, sh);
                     }
 
-                    // Shadows (Multiply Black)
                     if(f.shadows > 0){
                         cx.globalCompositeOperation = 'multiply';
                         cx.fillStyle = `rgba(0,0,0,${f.shadows/100})`;
                         cx.fillRect(0, 0, sw, sh);
                     }
 
-                    // Temp (Orange/Blue Overlay)
                     if(f.temp != 0) {
                         cx.globalCompositeOperation = 'overlay'; 
                         cx.fillStyle = f.temp > 0 ? `rgba(255,160,0,${Math.abs(f.temp)/100})` : `rgba(0,140,255,${Math.abs(f.temp)/100})`;
                         cx.fillRect(0, 0, sw, sh);
                     }
 
-                    // Tint (Green/Magenta)
                     if(f.tint != 0) {
                         cx.globalCompositeOperation = 'overlay';
                         cx.fillStyle = f.tint > 0 ? `rgba(255,0,255,${Math.abs(f.tint)/100})` : `rgba(0,255,0,${Math.abs(f.tint)/100})`;
                         cx.fillRect(0, 0, sw, sh);
                     }
 
-                    // --- D. THE FIX: CLEANUP SPILL ---
-                    // Even with source-atop, 'screen' mode highlights can sometimes boost near-zero alpha pixels.
-                    // We perform one final hard clip using destination-in with the original sticker.
-                    // EXCEPT: If we are Fuzzing (Feathering), we skip this because we WANT the soft edges.
                     if (f.fuzzRadius === 0) {
                          cx.globalCompositeOperation = 'destination-in';
                          cx.drawImage(this.bufs.sticker, 0, 0);
                     }
 
-                    // Reset
                     cx.globalCompositeOperation = 'source-over';
 
-                    // --- E. Final Output to Screen ---
                     ctx.save();
                     this.transform(ctx);
                     ctx.globalAlpha = f.opacity / 100;
@@ -386,7 +402,6 @@
                     ctx.restore();
                 }
 
-                // 4. Cursor
                 if(this.state.mode !== 'transform' && this.state.mouse.x > 0) {
                     ctx.save(); ctx.beginPath();
                     const sz = parseInt(document.getElementById('brushSize').value) * this.state.displayScale;
@@ -481,7 +496,7 @@
                 document.getElementById('filterOpacity').value = 100;
                 this.draw();
             },
-            download: function(){const lnk=document.createElement('a');lnk.download='imgpal-art.png';lnk.href=this.canvas.toDataURL();lnk.click()}
+            download: function(){const lnk=document.createElement('a');lnk.download='imgpal-out.png';lnk.href=this.canvas.toDataURL();lnk.click()}
         };
         
         app.init();
